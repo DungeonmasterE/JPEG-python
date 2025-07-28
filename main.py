@@ -219,7 +219,7 @@ def encoding(srcFileName, q):
 
 if __name__ == '__main__':
     path = 'Lenna_RGB.bmp'
-    Q = 90
+    Q = 85
 
     # Storage path
     enc_pic = "./data/enc_" + path[:-4] + "_QF=" + str(Q) + ".jpg"
