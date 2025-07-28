@@ -1,4 +1,4 @@
-# jpeg-Python
+# jpeg-Python (with Quality Factor)
 A pure Python implementation of the standard JPEG codec, supporting both encoding and decoding of JPEG images.
 
 # Features
