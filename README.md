@@ -1,5 +1,5 @@
 # JPEG-Python (with Quality Factor)
-A pure Python implementation of the standard JPEG codec.
+A pure Python implementation of the standard JPEG codec. This project provides quality factor (QF) to realize compression ratio control.
 
 # Features
 - JPEG baseline encoding (8-bit, lossy)，encapsulated by JFIF.
