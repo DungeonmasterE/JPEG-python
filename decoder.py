@@ -1,6 +1,7 @@
 from struct import *
 import numpy as np
 import cv2
+import math
 
 zigzag = [0, 1, 8, 16, 9, 2, 3, 10,
           17, 24, 32, 25, 18, 11, 4, 5,
@@ -156,7 +157,6 @@ class JPEG_dec:
                 l += 1
         return Coeff, dccoeff
 
-
     def StartOfScan(self, data, hdrlen):
         data, lenchunk = RemoveFF00(data[hdrlen:])
         st = Stream(data)
@@ -164,10 +164,18 @@ class JPEG_dec:
         Lum_quant_table = self.quant[self.quantMapping[0]]
         Col_quant_table = self.quant[self.quantMapping[1]]
 
+        # 检测是否进行过填充
+        if self.height % 8 != 0 or self.width % 8 != 0:
+            height = math.ceil(self.height / 8) * 8
+            width = math.ceil(self.width / 8) * 8
+        else:
+            height = self.height
+            width = self.width
+
         oldlumdccoeff, oldCbdccoeff, oldCrdccoeff = 0, 0, 0
         y_blocks, Cr_blocks, Cb_blocks = [], [], []
-        for y in range(self.height // 8):
-            for x in range(self.width // 8):
+        for y in range(height // 8):
+            for x in range(width // 8):
 
                 Y_block_coeff, oldlumdccoeff = self.BuildMatrix(st, 0, Lum_quant_table, oldlumdccoeff)
                 Cr_block_coeff, oldCrdccoeff = self.BuildMatrix(st, 1, Col_quant_table, oldCrdccoeff)
@@ -190,13 +198,12 @@ class JPEG_dec:
                 Cr_blocks.append(Cr_block)
                 Cb_blocks.append(Cb_block)
 
-        y_img = integrate_block(self.height, self.width, y_blocks)
-        cr_img = integrate_block(self.height, self.width, Cr_blocks)
-        cb_img = integrate_block(self.height, self.width, Cb_blocks)
-        img = np.clip(cv2.merge([y_img, cb_img, cr_img])+128, 0, 255).astype('uint8')
+        y_img = integrate_block(height, width, y_blocks)
+        cr_img = integrate_block(height, width, Cr_blocks)
+        cb_img = integrate_block(height, width, Cb_blocks)
+        img = np.clip(cv2.merge([y_img, cb_img, cr_img]) + 128, 0, 255).astype('uint8')
         img = cv2.cvtColor(img, cv2.COLOR_YCrCb2BGR)
-        return lenchunk + hdrlen, img
-
+        return lenchunk + hdrlen, img[:self.height, :self.width, :]
 
     def DefineQuantizationTables(self, data):
         while len(data) > 0:
@@ -210,7 +217,6 @@ class JPEG_dec:
         for i in range(components):
             id, samp, QtbId = unpack("BBB", data[6 + i * 3:9 + i * 3])
             self.quantMapping.append(QtbId)
-
 
     def DefineHuffmanTables(self, data):
         while len(data) > 0:
@@ -231,7 +237,6 @@ class JPEG_dec:
 
             data = data[off:]
 
-
     def decode(self, path):
         data = open(path, 'rb').read()
         while True:
@@ -251,7 +256,7 @@ class JPEG_dec:
                 elif hdr == 0xffc4:
                     self.DefineHuffmanTables(chunk)
                 elif hdr == 0xffda:
-                    lenchunk,img = self.StartOfScan(data, lenchunk)
+                    lenchunk, img = self.StartOfScan(data, lenchunk)
 
             data = data[lenchunk:]
             if len(data) == 0:
